@@ -1302,6 +1302,21 @@ ShaderConfig::ShaderConfig(const wxString& filename, const wxString& code, const
                 (double)(inputs[i].HasMember("MAX") ? wxAtof(SafeFloat(inputs[i]["MAX"].AsString())) : 1.0),
                 (double)(inputs[i].HasMember("DEFAULT") ? wxAtof(SafeFloat(inputs[i]["DEFAULT"].AsString())) : 0.0)
             ));
+
+            // check whether the shader has an input for zoom
+            _tmpStr = inputs[i]["NAME"].AsString();
+            for (int j = 0; j < _tmpStr.length(); j++) {
+                _tmpStr[j] = tolower(_tmpStr[j]);
+            }
+            // these are the two most common names used in shaders for this input
+            if (_tmpStr.find("zoom") < (_tmpStr.length() - 3)) _hasZoom = true;
+            if (_tmpStr.find("scale") < (_tmpStr.length() - 4)) _hasZoom = true;
+
+            // this is the shader telling xLights not to impose its transformations
+            if (_tmpStr.find("noxform") < (_tmpStr.length() - 6)) {
+                _hasZoom = true;
+                _hasPoint2D = true;
+            }
         }
         else if (type == "long")
         {
@@ -1346,6 +1361,15 @@ ShaderConfig::ShaderConfig(const wxString& filename, const wxString& code, const
                 inputs[i].HasMember("LABEL") ? inputs[i]["LABEL"].AsString() : "",
                 ShaderParmType::SHADER_PARM_COLOUR
             ));
+            // this is the shader telling xLights not to impose its transformations
+            _tmpStr = inputs[i]["NAME"].AsString();
+            for (int j = 0; j < _tmpStr.length(); j++) {
+                _tmpStr[j] = tolower(_tmpStr[j]);
+            }
+            if (_tmpStr.find("noxform") < (_tmpStr.length() - 6)) {
+                _hasZoom = true;
+                _hasPoint2D = true;
+            }
         }
         else if (type == "audio")
         {
@@ -1388,7 +1412,8 @@ ShaderConfig::ShaderConfig(const wxString& filename, const wxString& code, const
                 maxPt,
                 defPt
             ));
-        }
+            _hasPoint2D = true ;
+				}
         else if (type == "image")
         {
             // ignore these as we will use the existing buffer content
@@ -1589,7 +1614,7 @@ ShaderConfig::ShaderConfig(const wxString& filename, const wxString& code, const
     _hasRendersize = Contains(shaderCode, "RENDERSIZE");
     _hasTime = Contains(shaderCode, "TIME");
     _hasCoord = Contains(shaderCode, "xl_FragCoord");
-
+		
     _code = "#version 330\n\n";
     size_t idx = shaderCode.find("#extension");
     if (idx != std::string::npos) {
